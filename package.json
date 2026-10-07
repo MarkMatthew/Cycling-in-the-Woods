@@ -1,0 +1,21 @@
+{
+  "name": "grizzly-run",
+  "version": "1.0.0",
+  "description": "Grizzly Run - 16-Bit Survival Cycling Browser Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "phaser": "^3.88.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.0"
+  }
+}

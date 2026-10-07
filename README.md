@@ -1,88 +1,134 @@
-# Cycling in the Woods (Apex Trail)
+# Grizzly Run 🐻🚴
 
-> A high-tension, first-person survival cycling web game built with vanilla JavaScript, HTML5 Canvas, and modern CSS. Zero dependencies, 60 FPS, ready for deployment on Vercel or GitHub Pages.
+> A complete 16-bit retro pixel-art mountain biking survival browser game built with TypeScript, Phaser 3, and Vite. Designed for crisp nearest-neighbor 640×360 arcade rendering, responsive mobile/desktop play, zero external dependencies, and seamless deployment on Vercel.
 
 ---
 
-## 🌲 The Story
-You are descending an isolated, muddy logging road deep in grizzly country when an apex predator catches your trail. Stalking 80 meters behind you, the bear matches your pace—waiting for you to crack. Manage your pedaling cadence, shift through discrete gears to overcome thick mud patches, and monitor your oxygen debt. If you redline your physical capacity, the grizzly will enter an aggressive frenzy surge.
+## 🌲 The Premise
 
-Reach the highway 2.0 km ahead before you are mauled.
+A helmeted mountain biker in a red jacket and cyan bicycle races **LEFT** through a dark pine forest on an unforgiving muddy trail, pursued from the **RIGHT** by a simulated grizzly bear. The rider must manage speed, stamina, traction, and charged jumps across logs, kicker ramps, and deep creek gaps to reach the finish-line Ranger Station alive.
 
 ---
 
 ## 🎮 Controls
 
-| Key | Action | Details |
+### Desktop Keyboard
+| Key | Action | Description |
 |---|---|---|
-| **`W`** or **`Space`** | **Pedal** | Tap rhythmically to build and maintain cadence (RPM). |
-| **`↑` / `E`** | **Shift Up** | Shift to a higher gear (Gear 1 $\to$ 2 $\to$ 3). |
-| **`↓` / `Q`** | **Shift Down** | Shift to a lower gear (Gear 3 $\to$ 2 $\to$ 1). |
-| **Mouse / Touch** | **Pedal Tap** | Click or tap anywhere on the canvas to pedal. |
+| **`W` / `↑`** | **Sprint** | Accelerate up to 430 px/s (drains stamina). |
+| **`S` / `↓`** | **Brake** | Decelerate down to 110 px/s to maintain control in mud. |
+| **`Space`** | **Jump / Charge** | Tap for bunny hop; hold up to 350ms for high leap (auto-launches at cap). |
+| **`P` / `Esc`** | **Pause** | Open in-game menu (resume, restart, sound toggles). |
+| **`M`** | **Mute** | Toggle master audio on/off. |
+| **`R`** | **Restart** | Immediately restart a clean run after victory or defeat. |
+
+### Mobile Touch
+- **Sprint Button**: Green touch button (bottom-left) for sprinting.
+- **Brake Button**: Red touch button (bottom-left) for braking.
+- **Jump Button**: Large cyan touch button (bottom-right) for tap hop and hold-to-charge jumps.
+- **Multi-Touch**: Full support for simultaneous sprinting and jumping.
+- **Header Buttons**: Touch icons for Pause and Mute.
 
 ---
 
-## ⚙️ Core Mechanics & Architecture
+## 🕹️ Core Systems & Mechanics
 
-### 1. Oxygen Debt & Physical Redline Model
-- **Discrete Gear Ratios**:
-  - **Gear 1 (`0.5x`)**: High torque for thick mud. Lower top speed, minimal fatigue.
-  - **Gear 2 (`1.0x`)**: Balanced cruising gear for packed dirt.
-  - **Gear 3 (`2.0x`)**: High-speed sprint gear on flat terrain (~45 km/h). Severe stamina cost in mud.
-- **Mud Resistance**: Rises from $1.0$ (packed trail) to $3.0$ (deep mud).
-- **Effort Load Formula**:
-  $$\text{Effort Load} = \text{Gear Ratio} \times \text{Mud Resistance}$$
-- **The Redline Penalty**:
-  - If $\text{Effort Load} > 4.0$ continuously for **3.0 seconds**, you enter **Redline** status.
-  - While redlining, maximum stamina capacity degrades by **5% per second** (lactic lockout).
-  - You must downshift (to Gear 1 or 2) or clear the mud patch to lower Effort Load below $4.0$ to recover.
+### 1. 16-Bit Pixel Art Aesthetic
+- **Playfield**: 640 × 360 logical resolution with crisp nearest-neighbor integer scaling (`pixelArt: true`).
+- **Art Direction**: Approved 16-bit color palette with navy-black shadows, dark pine/teal parallax layers, brown mud, red jacket, cyan bike highlights, warm brown grizzly, and pixel crescent moon.
+- **Defender-Style Trail Scanner**: Real-time top radar HUD displaying the cyclist, bear, upcoming logs, kickers, mud patches, and creek gaps.
+- **Zero External Assets**: All sprites, terrain, scenery, particles, and obstacles are procedurally generated in code via the HTML5 Canvas API and registered into Phaser's TextureManager.
 
-### 2. Grizzly Bear Behavior Tree AI
-The predator is governed by a priority-based Behavior Tree:
-1. **Catch Player Sequence**: Triggers instant game over maul if distance $\le 0\text{ m}$.
-2. **Frenzy Rush Sequence**: Triggered when the player enters Redline status. Bear surges to **$\text{Max Speed} \times 1.3$** ($58.5\text{ km/h}$) for **$4.0\text{ seconds}$**.
-3. **Fatigue Recovery Sequence**: If the player survives Frenzy without being caught, the bear drops to **$50\%$ speed** for **$5.0\text{ seconds}$** to recover.
-4. **Default Stalking Action**: Matches player speed at $95\%$ with a minimum creeping speed of $15\text{ km/h}$.
+### 2. Bicycle Physics & Jump Mechanics
+- **Deterministic Fixed Step**: Physics calculations run on a fixed step with clamped `dt` to prevent tunneling or framerate variance.
+- **Jump Charging**: Tap for small bunny hops over logs; hold and release (up to 350ms) for high vertical impulse. Automatically launches at 350ms cap.
+- **Coyote Time & Input Buffering**: 100ms coyote grace window upon leaving ledges; 120ms input buffer when landing.
+- **Landing Dynamics**: Clean landings yield squash-and-stretch feedback; awkward landings in mud cost speed and cause skidding.
+- **Dirt Kickers**: Specially angled kickers provide launch boosts (`+60 px/s` horizontal, `-110 px/s` vertical impulse).
 
-### 3. Procedural Web Audio Engine
-100% self-contained in-memory synthesis via Web Audio API—no external `.mp3` or `.wav` assets:
-- **Trip-Hop Drum Stem (~90 BPM)**: Deep sub-bass 808, chunky kicks, vinyl surface crackle, and shakers.
-- **Cadence Linking**: Trip-Hop `playbackRate` scales dynamically with cadence ($0\text{--}120\text{ RPM}$) between $0.5\times$ and $1.5\times$.
-- **Frenzy Crossfade**: On Redline, Trip-Hop fades out and a frantic **Drum-and-Bass Breakbeat (~174 BPM)** fades in over $0.3\text{s}$, accompanied by a sweeping resonant lowpass filter simulating adrenaline tunnel vision.
-- **Procedural SFX**: Dual-ratchet gear shift clicks, low-stamina heartbeat/panting ($<30\%$), mud squelch, and predator roar.
+### 3. Grizzly Bear Pursuit AI
+- **True Pursuer Simulation**: Tracks continuous world coordinates behind the rider, starting with a 25-meter gap.
+- **Dynamic Pacing & Surges**: Sprinting and clean riding pull away from the bear. Braking, bumping logs, or skidding lets the bear close in. If the gap widens past 32 meters, the bear surges to maintain tension.
+- **Obstacle Leaping**: The bear leaps athletically over fallen logs and traverses creek gaps.
+- **Proximity Warnings**: Pulsing red vignette overlay and guttural bear roars trigger when the pursuer is within 14 meters.
 
-### 4. Pseudo-3D Outrun Canvas Engine
-- Segment scanline road projection with curves, rolling hills, and depth fog.
-- Scaling brown rectangles representing mud patches approaching in 3D perspective.
-- First-person cockpit with textured grips, brake levers, and cadence-linked handlebar sway and dip.
-- Proximity warning pulsing red vignette and real-time distance telemetry when the predator is $<50\text{ m}$.
+### 4. Original 1980s Pop-Rock Instrumental Soundtrack
+- **Dual-Stem Web Audio Synthesis**: Full-band synthesized pop-rock at 132 BPM featuring gated reverb snares, punchy bass, palm-muted rhythm guitar chugs, synth brass leads, and an intense danger stem.
+- **Hysteresis Danger Crossfade**: Danger stem activates when the bear closes to within 14 meters and releases only when the player creates an 18-meter lead.
+- **Stings & Fanfares**: Dedicated title screen theme, victory fanfare, defeat sting, and retro SFX (pedal clicks, jump chirps, mud skids, water splashes, and bonus chimes).
 
 ---
 
-## 🚀 Deployment
+## 🛠️ Project Structure
 
-### Zero-Dependency Local Play
-Open `index.html` in any modern web browser:
+```
+├── src/
+│   ├── audio/
+│   │   ├── SoundEffects.ts         # 16-bit retro procedural sound effects
+│   │   └── SoundtrackEngine.ts     # Dual-stem 1980s pop-rock soundtrack engine
+│   ├── entities/
+│   │   ├── Bear.ts                 # Simulated grizzly pursuer entity & AI
+│   │   └── Cyclist.ts              # Cyclist physics, jump charging & stamina
+│   ├── graphics/
+│   │   └── PixelArtGenerator.ts    # Procedural 16-bit sprites & textures
+│   ├── level/
+│   │   └── LevelData.ts            # Handcrafted 90-120s course layout & obstacles
+│   ├── scenes/
+│   │   ├── BootScene.ts            # Texture generation & animations
+│   │   ├── TitleScene.ts           # 16-bit title screen & high scores
+│   │   ├── GameScene.ts            # Main gameplay loop, camera & parallax
+│   │   ├── PauseScene.ts           # Pause menu & audio/shake toggles
+│   │   └── GameOverScene.ts        # Victory & non-graphic defeat recap
+│   ├── ui/
+│   │   ├── HUD.ts                  # Defender-style radar, stamina bar & score
+│   │   └── TouchControls.ts        # Multi-touch mobile controls
+│   ├── utils/
+│   │   └── Storage.ts              # Safe LocalStorage persistence
+│   ├── config.ts                   # Centralized game tuning constants
+│   ├── main.ts                     # Phaser entry point & config
+│   └── types.ts                    # TypeScript interfaces & enums
+├── tests/
+│   ├── chase.test.ts               # Pursuit calculations & hysteresis tests
+│   ├── jump.test.ts                # Jump charging & coyote time tests
+│   ├── level.test.ts               # Course bounds & creek gap tests
+│   ├── scoring.test.ts             # Bonus scoring & persistence tests
+│   └── stamina.test.ts             # Oxygen debt & exhaustion tests
+├── index.html                      # Mount point & responsive metadata
+├── style.css                       # Pixel-art nearest-neighbor styling
+├── vercel.json                     # Vercel deployment configuration
+├── tsconfig.json                   # Strict TypeScript compiler options
+└── vite.config.ts                  # Vite build configuration
+```
+
+---
+
+## 🚀 Development & Deployment
+
+### Prerequisites
+- Node.js (v18+)
+- npm
+
+### Installation
 ```bash
-# Optional local HTTP server (or open directly)
-npx serve .
-# Or Python
-python3 -m http.server 8000
+npm install
 ```
 
-### Vercel Deployment
-Deploy instantly with zero build step:
+### Development Server
 ```bash
-npx vercel
+npm run dev
 ```
-Or import this repository directly into your [Vercel Dashboard](https://vercel.com).
 
----
+### Typecheck & Test
+```bash
+npm run typecheck
+npm test
+```
 
-## 📁 Repository Structure
+### Production Build
+```bash
+npm run build
+npm run preview
 ```
-├── index.html       # HTML5 game viewport, DOM HUD, proximity vignette, modals
-├── style.css        # Responsive styling, glassmorphism HUD, pulse animations
-├── game.js          # Consolidated engine: Audio, Physics, AI, Renderer, HUD
-└── README.md        # Documentation and game manual
-```
+
+### Deploying to Vercel
+Push this repository to GitHub and import it into Vercel. With `vercel.json` and the standard Vite build configuration, it deploys automatically with zero configuration.
